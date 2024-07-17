@@ -1,0 +1,79 @@
+/************
+Sharpen DCTL plugin by Jason
+https://github.com/themaker2907/Resolve-Convolution-Sharpen
+Powered by convolution matrix
+
+Matrix code: https://github.com/capebulbs/ConvDCTL
+Methodology based on: https://www.taylorpetrick.com/blog/post/convolution-part3
+************/
+
+DEFINE_UI_PARAMS(null, Convolution sharpen by Jason, DCTLUI_VALUE_BOX, 1.0)
+DEFINE_UI_PARAMS(sharp_input, Sharpen amount, DCTLUI_VALUE_BOX, 1.0)
+
+
+
+__DEVICE__ float3 transform(int p_Width, int p_Height, int p_X, int p_Y, __TEXTURE__ p_TexR, __TEXTURE__ p_TexG, __TEXTURE__ p_TexB)
+{
+
+	float sharp_factor = abs(sharp_input) * -1;
+	float ker22 = 4 * abs(sharp_factor) + 1;
+	
+	float ker12 = sharp_factor;
+	float ker21 = sharp_factor;
+	float ker23 = sharp_factor;
+	float ker32 = sharp_factor;
+
+	float ker11 = 0.0;
+	float ker13 = 0.0;
+	float ker31 = 0.0;
+	float ker33 = 0.0;
+
+	float coefR = 0.0;
+	float coefG = 0.0;
+	float coefB = 0.0;
+
+	float coef = 1.0;
+
+	float offsetR = 0.0;
+	float offsetG = 0.0;
+	float offsetB = 0.0;
+
+
+	const float r = offsetR + (coef + coefR) * (
+		ker11 * (p_X * p_Y > 0? _tex2D(p_TexR, p_X - 1, p_Y - 1) : 0) + 
+		ker12 * (p_Y > 0? _tex2D(p_TexR, p_X, p_Y - 1) : 0) + 
+		ker13 * (p_Y * (p_Width - p_X - 1) > 0? _tex2D(p_TexR, p_X + 1, p_Y - 1) : 0) + 
+		ker21 * (p_X > 0? _tex2D(p_TexR, p_X - 1, p_Y) : 0) + 
+		ker22 * _tex2D(p_TexR, p_X, p_Y) + 
+		ker23 * (p_Width - p_X - 1 > 0? _tex2D(p_TexR, p_X + 1, p_Y) : 0) + 
+		ker31 * (p_X * (p_Height - p_Y - 1) > 0? _tex2D(p_TexR, p_X - 1, p_Y + 1) : 0) + 
+		ker32 * (p_Height - p_Y - 1 > 0? _tex2D(p_TexR, p_X, p_Y + 1) : 0) + 
+		ker33 * ((p_Width - p_X - 1) * (p_Height - p_Y - 1) > 0? _tex2D(p_TexR, p_X + 1, p_Y + 1) : 0)
+	);
+	
+	const float g = offsetG + (coef + coefG) * (
+		ker11 * (p_X * p_Y > 0? _tex2D(p_TexG, p_X - 1, p_Y - 1) : 0) + 
+		ker12 * (p_Y > 0? _tex2D(p_TexG, p_X, p_Y - 1) : 0) + 
+		ker13 * (p_Y * (p_Width - p_X - 1) > 0? _tex2D(p_TexG, p_X + 1, p_Y - 1) : 0) + 
+		ker21 * (p_X > 0? _tex2D(p_TexG, p_X - 1, p_Y) : 0) + 
+		ker22 * _tex2D(p_TexG, p_X, p_Y) + 
+		ker23 * (p_Width - p_X - 1 > 0? _tex2D(p_TexG, p_X + 1, p_Y) : 0) + 
+		ker31 * (p_X * (p_Height - p_Y - 1) > 0? _tex2D(p_TexG, p_X - 1, p_Y + 1) : 0) + 
+		ker32 * (p_Height - p_Y - 1 > 0? _tex2D(p_TexG, p_X, p_Y + 1) : 0) + 
+		ker33 * ((p_Width - p_X - 1) * (p_Height - p_Y - 1) > 0? _tex2D(p_TexG, p_X + 1, p_Y + 1) : 0)
+	);
+	
+	const float b = offsetB + (coef + coefB) * (
+		ker11 * (p_X * p_Y > 0? _tex2D(p_TexB, p_X - 1, p_Y - 1) : 0) + 
+		ker12 * (p_Y > 0? _tex2D(p_TexB, p_X, p_Y - 1) : 0) + 
+		ker13 * (p_Y * (p_Width - p_X - 1) > 0? _tex2D(p_TexB, p_X + 1, p_Y - 1) : 0) + 
+		ker21 * (p_X > 0? _tex2D(p_TexB, p_X - 1, p_Y) : 0) + 
+		ker22 * _tex2D(p_TexB, p_X, p_Y) + 
+		ker23 * (p_Width - p_X - 1 > 0? _tex2D(p_TexB, p_X + 1, p_Y) : 0) + 
+		ker31 * (p_X * (p_Height - p_Y - 1) > 0? _tex2D(p_TexB, p_X - 1, p_Y + 1) : 0) + 
+		ker32 * (p_Height - p_Y - 1 > 0? _tex2D(p_TexB, p_X, p_Y + 1) : 0) + 
+		ker33 * ((p_Width - p_X - 1) * (p_Height - p_Y - 1) > 0? _tex2D(p_TexB, p_X + 1, p_Y + 1) : 0)
+	);               
+	
+	return make_float3(r, g, b);
+} 	
